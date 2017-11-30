@@ -1,0 +1,9 @@
+results
+models
+corpus
+
+#VSCode
+.vscode
+
+#Mac OS
+.DS_Store
