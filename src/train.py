@@ -28,8 +28,8 @@ testFileName = 'label_train_data_valid.csv'
 
 loadWeight = False
 
-loadModelName = 'infoGAN'
-saveModelName = 'infoGAN_save'
+loadModelName = 'CNN_dropout_xyz_2'
+saveModelName = '1234_sub2'
 
 models_dir = join(models_dir, loadModelName)
 # parameter
@@ -135,11 +135,18 @@ def train_gen_model(gen_model, disc_model, code_dim, noise_dim):
 # model.get_weights()
 model.summary()
 
-# Save model structure
-model_architecture = model.to_json()
+# Save generator model structure
+model_architecture = gen_model.to_json()
 
-with open(models_dir+'/model_structure', 'w') as outfile:
+with open(models_dir+'/gen_model_structure', 'w') as outfile:
     json.dump(model_architecture, outfile)
+
+# Save generator model structure
+model_architecture = disc_model.to_json()
+
+with open(models_dir+'/disc_model_structure', 'w') as outfile:
+    json.dump(model_architecture, outfile)
+
 
 # acc_highest = prior[0]
 acc_highest = 0
@@ -161,8 +168,6 @@ disc_model.compile(loss = list_losses,
                         optimizer = 'adam', # using the Adam optimiser)
 
 
-# img_data = N * 3 * size * size
-# label_data = N * caption_vector_len
 minLoss = float('Inf')
 for i in range(nEpoch):
     disc_model.trainable = False
