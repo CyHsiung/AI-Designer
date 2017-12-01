@@ -17,7 +17,7 @@ from keras.layers import add
 import keras.backend as K
 
 fileName = 'label_data.csv'
-modelName ='infoGAN'
+modelName = 'infoGAN'
 
 project_dir = "../"
 
@@ -27,6 +27,7 @@ models_dir = join(project_dir, "models")
 feats_dir = join(project_dir, "feats")
 
 # parameter
+# modify as needed
 code_dim = 10
 noise_dim = 40
 image_dim = [3, 28, 28]

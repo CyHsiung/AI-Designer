@@ -4,8 +4,8 @@ import json
 import math
 import os
 
-from getData_xyz import read_train_file, read_test_file
-from test import test_model, test_model_prior, ROC_score
+#from getData_xyz import read_train_file, read_test_file
+#from test import test_model, test_model_prior, ROC_score
 
 #keras import
 import keras
@@ -33,6 +33,7 @@ saveModelName = '1234_sub2'
 
 models_dir = join(models_dir, loadModelName)
 # parameter
+# modify as needed
 nEpoch = 400
 code_dim = 10
 noise_dim = 40
@@ -160,13 +161,16 @@ list_weights = [1, 1]
 disc_model.trainable = False
 train_gen_model.compile(loss = list_losses, 
                         loss_weights = list_weights, 
-                        optimizer = 'adam', # using the Adam optimiser)
+                        optimizer = 'adam' # using the Adam optimiser)
                         )
 disc_model.trainable = True
 disc_model.compile(loss = list_losses, 
                         loss_weights = list_weights, 
-                        optimizer = 'adam', # using the Adam optimiser)
+                        optimizer = 'adam' # using the Adam optimiser)
+                        )
 
+#img_data: N * 3 * size * size
+#label_data: N * caption_vector_len
 
 minLoss = float('Inf')
 for i in range(nEpoch):
