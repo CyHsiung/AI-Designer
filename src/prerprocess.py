@@ -4,21 +4,23 @@ from os.path import join
 import scipy.ndimage
 
 N = 100
+# all samples
+#N = 18175
 IMG_SHAPE = (3,96,96)
 IMG_DATA_SHAPE = tuple([N]+list(IMG_SHAPE))
 
-def gen_test_vectors():
+def gen_test_vectors(numSample):
     fs = h5py.File('../corpus/data2_vectors.hdf5', 'r')
     src = fs['vectors']
     fd = h5py.File('../corpus/test_vectors.hdf5', 'w')
-    fd.create_dataset('vectors', data=src[:N])
+    fd.create_dataset('vectors', data=src[:numSample])
     fs.close()
     fd.close()
 
-def gen_test_imgs():
+def gen_test_imgs(numSample):
     img_data = np.empty(IMG_DATA_SHAPE, dtype=np.uint8)
     with open('../corpus/avalist.txt','r') as f:
-        for i in range(N):
+        for i in range(numSample):
             line = f.readline().strip()
             img = scipy.ndimage.imread(join('../corpus/faces', line))
             img_data[i,...] = img.transpose(2, 0, 1)
@@ -30,8 +32,8 @@ def test_read():
         dset = f['imgs']
 
 def main():
-    gen_test_vectors()
-    gen_test_imgs()
+    gen_test_vectors(N)
+    gen_test_imgs(N)
     #test_read()
 
 if __name__ == '__main__':

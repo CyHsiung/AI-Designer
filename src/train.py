@@ -29,15 +29,15 @@ corpus_dir = join(project_dir, "corpus")
 models_dir = join(project_dir, "models")
 feats_dir = join(project_dir, "feats")
 
-vectorFileName = 'test_vectors.hdf5'
-imgFileName = 'test_imgs.hdf5'
+vectorFileName = 'data2_vectors.hdf5'
+imgFileName = 'data2_imgs.hdf5'
 #trainFileName = 'label_train_data_train.csv'
 #testFileName = 'label_train_data_valid.csv'
 
 loadWeight = False
 
 loadModelName = 'infoGAN'
-saveModelName = 'infoGAN_' + datetime.datetime.now().strftime('%y-%m-%dT%H:%M:%S')
+saveModelName = 'infoGAN_' + datetime.datetime.now().strftime('%y%m%d_%H%M%S')
 
 models_dir = join(models_dir, loadModelName)
 # parameter
@@ -109,7 +109,6 @@ def get_img_data(filename):
 
 label_data = get_vector_data(vectorFileName)
 img_data = get_img_data(imgFileName)
-print(label_data.shape, img_data.shape)
 
 def get_gen_batch(label_data, batch_size, noise_dim):
     idx = 0
@@ -179,8 +178,8 @@ with open(models_dir+'/disc_model_structure', 'w') as outfile:
 
 
 # acc_highest = prior[0]
-acc_highest = 0
-print(acc_highest)
+#acc_highest = 0
+#print(acc_highest)
 train_gen_model = train_gen_model(gen_model, disc_model, code_dim, noise_dim)
 # cosine similarity
 def cos_sim(y_true, y_pred):
