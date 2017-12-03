@@ -30,7 +30,7 @@ feats_dir = join(project_dir, "feats")
 # modify as needed
 code_dim = 10
 noise_dim = 40
-image_dim = [3, 28, 28]
+image_dim = [3, 96, 96]
 conv_layer = 3
 first_depth = 10
 dropRate = 0.3

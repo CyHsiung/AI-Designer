@@ -3,6 +3,8 @@ from os.path import basename, splitext, join
 import json
 import math
 import os
+import h5py
+import datetime
 
 #from getData_xyz import read_train_file, read_test_file
 #from test import test_model, test_model_prior, ROC_score
@@ -20,16 +22,18 @@ project_dir = "../"
 
 result_dir = join(project_dir, "results")
 corpus_dir = join(project_dir, "corpus")
-models_dir = join(project_dir, "models_xyz")
+models_dir = join(project_dir, "models")
 feats_dir = join(project_dir, "feats")
 
-trainFileName = 'label_train_data_train.csv'
-testFileName = 'label_train_data_valid.csv'
+vectorFileName = 'test_vectors.hdf5'
+imgFileName = 'test_imgs.hdf5'
+#trainFileName = 'label_train_data_train.csv'
+#testFileName = 'label_train_data_valid.csv'
 
 loadWeight = False
 
-loadModelName = 'CNN_dropout_xyz_2'
-saveModelName = '1234_sub2'
+loadModelName = 'infoGAN'
+saveModelName = 'infoGAN_' + datetime.datetime.now().strftime('%y-%m-%dT%H:%M:%S')
 
 models_dir = join(models_dir, loadModelName)
 # parameter
@@ -37,7 +41,7 @@ models_dir = join(models_dir, loadModelName)
 nEpoch = 400
 code_dim = 10
 noise_dim = 40
-image_dim = [3, 28, 28]
+image_dim = [3, 96, 96]
 
 gen_model_structure = join(models_dir, 'gen_model_structure')
 disc_model_structure = join(models_dir, 'disc_model_structure')
@@ -46,21 +50,20 @@ disc_model_structure = join(models_dir, 'disc_model_structure')
 
 
 # Read file 
-X, Y = read_train_file(trainFileName, freq, secLength)
+#X, Y = read_train_file(trainFileName, freq, secLength)
 
-trainLength = int(trainRatio * len(X))
-X_train = X
-Y_train = Y
 
-testList = read_test_file(testFileName, freq, secLength)
+#trainLength = int(trainRatio * len(X))
+#X_train = X
+#Y_train = Y
+
+#testList = read_test_file(testFileName, freq, secLength)
 # new model directory for new parameter
-models_dir = join(project_dir, "models_xyz")
+models_dir = join(project_dir, "models")
 
 # make model directory
 os.makedirs(join(models_dir, saveModelName))
 models_dir = join(models_dir, saveModelName)
-
-
 
 # load generator model structure and weight
 with open(gen_model_structure) as json_file:
@@ -78,9 +81,28 @@ if loadWeight:
     model.load_weights(model_weight_path, by_name = True)
 '''
 
-model.compile(loss='mean_squared_error', # using the cross-entropy loss function
+gen_model.compile(loss='mean_squared_error', # using the cross-entropy loss function
               optimizer='adam', # using the Adam optimiser
               metrics=['accuracy'])
+
+disc_model.compile(loss='mean_squared_error', # using the cross-entropy loss function
+              optimizer='adam', # using the Adam optimiser
+              metrics=['accuracy'])
+
+
+def get_vector_data(filename):
+    with h5py.File(join(corpus_dir, filename), "r") as f:
+        vector_data = f['vectors'][()]
+    return vector_data 
+
+def get_img_data(filename):
+    with h5py.File(join(corpus_dir, filename), "r") as f:
+        img_data = f['imgs'][()]
+    return img_data
+
+label_data = get_vector_data(vectorFileName)
+img_data = get_img_data(imgFileName)
+#print(label_data.shape, img_data.shape)
 
 def get_gen_batch(label_data, batch_size, noise_dim):
     idx = 0
@@ -94,8 +116,6 @@ def get_gen_batch(label_data, batch_size, noise_dim):
         disc_out = np.zeros((batch_size, 2))
         disc_out[:, 1] = 1
         yield ([c, noise], [disc_out, c])
-        
-        
 
 def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim):
     idx = 0
@@ -134,7 +154,7 @@ def train_gen_model(gen_model, disc_model, code_dim, noise_dim):
         
     
 # model.get_weights()
-model.summary()
+# model.summary()
 
 # Save generator model structure
 model_architecture = gen_model.to_json()
@@ -169,9 +189,8 @@ disc_model.compile(loss = list_losses,
                         optimizer = 'adam' # using the Adam optimiser)
                         )
 
-#img_data: N * 3 * size * size
+#img_data: N * img_dim
 #label_data: N * caption_vector_len
-
 minLoss = float('Inf')
 for i in range(nEpoch):
     disc_model.trainable = False
