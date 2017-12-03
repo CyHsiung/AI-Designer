@@ -1,4 +1,5 @@
-#EECS545 F17 Final Project
+EECS545 F17 Final Project
+=========================
 
 Put `faces` directory under `corpus`  
 Put `avalist.txt`, `data2_vectors.hdf5` under `corpus`  
