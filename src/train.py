@@ -9,11 +9,15 @@ import datetime
 #from getData_xyz import read_train_file, read_test_file
 #from test import test_model, test_model_prior, ROC_score
 
+
+import tensorflow as tf
 #keras import
 import keras
 
 from keras.models import model_from_json
 from keras.models import Model
+from keras.layers import Input, Dense, Dropout, Activation, Flatten, Concatenate, Reshape, BatchNormalization, UpSampling2D
+from keras.layers import Conv2D, MaxPooling2D
 from keras.optimizers import SGD, Adam, RMSprop, Adagrad
 from keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler, Callback
 import keras.backend as K
@@ -39,9 +43,12 @@ models_dir = join(models_dir, loadModelName)
 # parameter
 # modify as needed
 nEpoch = 400
-code_dim = 10
-noise_dim = 40
+code_dim = 4800
+noise_dim = 1000
 image_dim = [3, 96, 96]
+batch_size = 32
+# train generator n times then train discriminator 1 time
+gen_train_ratio = 1
 
 gen_model_structure = join(models_dir, 'gen_model_structure')
 disc_model_structure = join(models_dir, 'disc_model_structure')
@@ -102,17 +109,17 @@ def get_img_data(filename):
 
 label_data = get_vector_data(vectorFileName)
 img_data = get_img_data(imgFileName)
-#print(label_data.shape, img_data.shape)
+print(label_data.shape, img_data.shape)
 
 def get_gen_batch(label_data, batch_size, noise_dim):
     idx = 0
-    dataLength = label.shape[0]
+    dataLength = label_data.shape[0]
     while 1:
         if idx + batch_size >= dataLength:
             idx = 0
         c = label_data[idx: idx + batch_size, :]
         idx += batch_size
-        noise = np.random.uniform(batch_size, noise_dim)
+        noise = np.random.uniform(size = (batch_size, noise_dim))
         disc_out = np.zeros((batch_size, 2))
         disc_out[:, 1] = 1
         yield ([c, noise], [disc_out, c])
@@ -128,13 +135,15 @@ def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_
         label = label_data[idx: idx + batch_size, :]
         idx += batch_size
         # generate noise
-        noise = np.random.uniform(batch_size, noise_dim)
+        noise = np.random.uniform(size = (batch_size, noise_dim))
         code = label
         # generate image
-        [imgFake] = gen(model.predict([code, noise]))
+        global graph
+        with graph.as_default():
+            imgFake = gen_model.predict([code, noise])
         # concatenate fake and real image into a batch
         x_train = np.concatenate((imgFake, image), axis = 0)
-        code = concatenate((label, label), axis = 0)
+        code = np.concatenate((label, label), axis = 0)
         disc = np.zeros((2 * batch_size, 2))
         # fake image label
         disc[:batch_size, 0] = 1
@@ -173,9 +182,15 @@ with open(models_dir+'/disc_model_structure', 'w') as outfile:
 acc_highest = 0
 print(acc_highest)
 train_gen_model = train_gen_model(gen_model, disc_model, code_dim, noise_dim)
+# cosine similarity
+def cos_sim(y_true, y_pred):
+    dot = K.sum(y_true * y_pred, axis = 1)
+    u = K.sqrt(K.sum(K.square(y_true), axis = 1))
+    v = K.sqrt(K.sum(K.square(y_pred), axis = 1))
+    return 1 - dot / (u * v + 0.0001)
 
 # loss for disc and code output
-list_losses = ['binary_crossentropy', 'categorical_crossentropy']
+list_losses = ['binary_crossentropy', cos_sim]
 list_weights = [1, 1]
 
 disc_model.trainable = False
@@ -194,17 +209,18 @@ disc_model.compile(loss = list_losses,
 minLoss = float('Inf')
 for i in range(nEpoch):
     disc_model.trainable = False
-    gen_loss = train_gen_model.fit_generator(get_gen_batch(label_data, batch_size, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = 5)
+    gen_loss = train_gen_model.fit_generator(get_gen_batch(label_data, batch_size, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = gen_train_ratio)
     # 0 is total loss
-    gen_loss = gen_loss[0] 
+    gen_loss = gen_loss.history['loss'] 
     disc_model.trainable = True
+    graph = tf.get_default_graph()
     
-    disc_loss = train_gen_model.fit_generator(get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = 1) 
+    disc_loss = disc_model.fit_generator(get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = 1) 
     # 0 is total loss
-    disc_loss = disc_loss[0] 
-
-    if disc_loss + gen_loss < minLoss:
+    disc_loss = disc_loss.history['loss']
+    if disc_loss[0] + gen_loss[0] < minLoss:
         gen_model.save_weights(join(models_dir, 'gen_weight'))
         disc_model.save_weights(join(models_dir, 'disc_weight'))
+        print('Save model due to better performance!!')
 
 
