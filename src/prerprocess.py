@@ -24,8 +24,6 @@ def gen_train_imgs():
     img_file_list = glob.glob(join(IMG_DIR, '*.jpg'))
     img_file_list.sort(key=natsort.natsort_keygen())
     img_data = np.empty((len(img_file_list), 3, 96, 96), dtype=np.uint8)
-    with h5py.File('../corpus/train_imgs.hdf5', 'w') as f:
-        f.create_dataset('imgs', data=img_data)
 
     for i,img_file in enumerate(img_file_list):
         img = scipy.ndimage.imread(img_file)
