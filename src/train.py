@@ -29,8 +29,8 @@ corpus_dir = join(project_dir, "corpus")
 models_dir = join(project_dir, "models")
 feats_dir = join(project_dir, "feats")
 
-vectorFileName = 'data2_vectors.hdf5'
-imgFileName = 'data2_imgs.hdf5'
+vectorFileName = 'train_vectors.hdf5'
+imgFileName = 'train_imgs.hdf5'
 #trainFileName = 'label_train_data_train.csv'
 #testFileName = 'label_train_data_valid.csv'
 
@@ -96,19 +96,10 @@ disc_model.compile(loss='mean_squared_error', # using the cross-entropy loss fun
               optimizer='adam', # using the Adam optimiser
               metrics=['accuracy'])
 
-
-def get_vector_data(filename):
-    with h5py.File(join(corpus_dir, filename), "r") as f:
-        vector_data = f['vectors'][()]
-    return vector_data 
-
-def get_img_data(filename):
-    with h5py.File(join(corpus_dir, filename), "r") as f:
-        img_data = f['imgs'][()]
-    return img_data
-
-label_data = get_vector_data(vectorFileName)
-img_data = get_img_data(imgFileName)
+vectorFile = h5py.File(join(corpus_dir, vectorFileName), "r")
+imgFile = h5py.File(join(corpus_dir, imgFileName), "r")
+label_data = vectorFile['vectors']
+img_data = imgFile['imgs']
 
 def get_gen_batch(label_data, batch_size, noise_dim):
     idx = 0
@@ -222,4 +213,6 @@ for i in range(nEpoch):
         disc_model.save_weights(join(models_dir, 'disc_weight'))
         print('Save model due to better performance!!')
 
+vectorFile.close()
+imgFile.close()
 
