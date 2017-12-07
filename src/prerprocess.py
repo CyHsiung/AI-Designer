@@ -26,6 +26,8 @@ def gen_train_imgs():
     img_data = np.empty((len(img_file_list), 3, 96, 96), dtype=np.uint8)
 
     for i,img_file in enumerate(img_file_list):
+        if i%100 == 0:
+            print('Processing', img_file)
         img = scipy.ndimage.imread(img_file)
         img_data[i,:] = img.transpose(2, 0, 1)
 
@@ -38,5 +40,6 @@ def test_train_imgs():
         print(dset)
 
 if __name__ == '__main__':
+    print('Preparing to generate training imgs...')
     gen_train_imgs()
     test_train_imgs()
