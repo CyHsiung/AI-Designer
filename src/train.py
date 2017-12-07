@@ -198,6 +198,7 @@ disc_model.compile(loss = list_losses,
 #label_data: N * caption_vector_len
 minLoss = float('Inf')
 for i in range(nEpoch):
+    print('Real Epoch: {}/{}'.format(i+1,nEpoch))
     disc_model.trainable = False
     gen_loss = train_gen_model.fit_generator(get_gen_batch(label_data, batch_size, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = gen_train_ratio)
     # 0 is total loss
