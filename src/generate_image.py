@@ -49,23 +49,31 @@ def get_gen_batch(wordVector, imgNum, noise_dim):
 
 def display(imgArr):
     plt.figure()
-    imgArr = imgArr.reshape(imgArr.shape[0], imgArr.shape[2], imgArr.shape[3], imgArr.shape[1])
+    # imgArr = imgArr.reshape(imgArr.shape[0], imgArr.shape[2], imgArr.shape[3], imgArr.shape[1])
     imgNum = imgArr.shape[0]
     print(imgArr.shape)
     for i in range(imgNum):
         img = plt.subplot(imgNum, 1, i + 1)
-        img.imshow(imgArr[i, :, :, :])
+        img.imshow(imgArr[i, :, :, :].transpose(1,2,0))
     plt.savefig(join(result_dir, "generate_image.png"))
     plt.show()
 
 if __name__ == '__main__':
+    imgFileName = 'test_imgs.hdf5'
+    img_data = get_img_data(imgFileName)
+    print(img_data[0])
+    print(img_data[0].shape)
+    print(img_data.shape)
+    display(img_data[:1,:,:,:])
+    input('qq')
+    
     # parameter
     noise_dim = 100
     imgNum = 4
 
     # model and weight name
-    modelName ='infoGAN_17-12-08'
-    weightName = 'gen_weight_4'
+    modelName ='infoGAN_17-12-09'
+    weightName = 'gen_weight_5'
     models_dir = join(models_dir, modelName)
 
     # load variable (change with different model)
@@ -85,11 +93,12 @@ if __name__ == '__main__':
     # load word vector file
     label_data = get_vector_data(vectorFileName)
     print(label_data.shape)
-    word_vec = label_data[10]
+    word_vec = label_data[99]
     
     # generator produce image vectors
     img_vector = gen_model.predict(get_gen_batch(word_vec, imgNum, noise_dim))
     print(img_vector.shape)
+    print(img_vector[0,:,:,:])
     display(img_vector)
     
 

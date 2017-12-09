@@ -109,7 +109,9 @@ def get_img_data(filename):
 
 label_data = get_vector_data(vectorFileName)
 img_data = get_img_data(imgFileName)
-print(label_data.shape, img_data.shape)
+# normalize data between 0 ~ 1
+img_data = img_data/255
+print('data shape: ', label_data.shape, img_data.shape)
 
 def get_gen_batch(label_data, batch_size, noise_dim):
     idx = 0
