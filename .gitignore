@@ -11,3 +11,6 @@ corpus
 #python
 __pycache__
 VENV
+
+#jupyter
+*.ipynb
