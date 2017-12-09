@@ -42,13 +42,13 @@ saveModelName = 'infoGAN_' + datetime.datetime.now().strftime('%y-%m-%dT%H:%M:%S
 models_dir = join(models_dir, loadModelName)
 # parameter
 # modify as needed
-nEpoch = 400
+nEpoch = 100
 code_dim = 4800
-noise_dim = 1000
+noise_dim = 100
 image_dim = [3, 96, 96]
 batch_size = 32
 # train generator n times then train discriminator 1 time
-gen_train_ratio = 1
+gen_train_ratio = 10
 
 gen_model_structure = join(models_dir, 'gen_model_structure')
 disc_model_structure = join(models_dir, 'disc_model_structure')
@@ -207,7 +207,11 @@ disc_model.compile(loss = list_losses,
 #img_data: N * img_dim
 #label_data: N * caption_vector_len
 minLoss = float('Inf')
+graph = tf.get_default_graph()
 for i in range(nEpoch):
+    disc_loss = disc_model.fit_generator(get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = 1) 
+    # 0 is total loss
+    disc_loss = disc_loss.history['loss']
     disc_model.trainable = False
     gen_loss = train_gen_model.fit_generator(get_gen_batch(label_data, batch_size, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = gen_train_ratio)
     # 0 is total loss
@@ -215,12 +219,9 @@ for i in range(nEpoch):
     disc_model.trainable = True
     graph = tf.get_default_graph()
     
-    disc_loss = disc_model.fit_generator(get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = 1) 
-    # 0 is total loss
-    disc_loss = disc_loss.history['loss']
-    if disc_loss[0] + gen_loss[0] < minLoss:
-        gen_model.save_weights(join(models_dir, 'gen_weight'))
-        disc_model.save_weights(join(models_dir, 'disc_weight'))
-        print('Save model due to better performance!!')
+    if (i + 1) % 5 == 0:
+        gen_model.save_weights(join(models_dir, 'gen_weight_'+ str(i + 1)))
+        disc_model.save_weights(join(models_dir, 'disc_weight_' + str(i + 1)))
+        print('Save model epoch: ', i + 1)
 
 

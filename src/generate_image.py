@@ -60,12 +60,12 @@ def display(imgArr):
 
 if __name__ == '__main__':
     # parameter
-    noise_dim = 1000
+    noise_dim = 100
     imgNum = 4
 
     # model and weight name
-    modelName ='infoGAN_171208_024855'
-    weightName = 'gen_weight'
+    modelName ='infoGAN_17-12-08'
+    weightName = 'gen_weight_4'
     models_dir = join(models_dir, modelName)
 
     # load variable (change with different model)
@@ -85,7 +85,7 @@ if __name__ == '__main__':
     # load word vector file
     label_data = get_vector_data(vectorFileName)
     print(label_data.shape)
-    word_vec = label_data[99]
+    word_vec = label_data[10]
     
     # generator produce image vectors
     img_vector = gen_model.predict(get_gen_batch(word_vec, imgNum, noise_dim))

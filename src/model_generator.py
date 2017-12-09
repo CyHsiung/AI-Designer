@@ -29,9 +29,9 @@ feats_dir = join(project_dir, "feats")
 # parameter
 # modify as needed
 code_dim = 4800
-noise_dim = 1000
+noise_dim = 100
 image_dim = [3, 96, 96]
-conv_layer = 2
+conv_layer = 3
 first_depth = 10
 dropRate = 0.3
 text_compress = 256
@@ -47,13 +47,14 @@ os.system('cp ./model_generator.py ' + join(models_dir, 'model_generator.py'))
 # Generator
 inp_code = Input(shape = (code_dim,), name = 'code_input')
 inp_noise = Input(shape = (noise_dim, ), name = 'noise_input')
-inp = Concatenate()([inp_code, inp_noise])
 
-x = Dense(units = text_compress)(inp)
+x = Dense(units = text_compress)(inp_code)
 x = BatchNormalization()(x)
 x = Activation("relu")(x)
 
-x = Dense(units = (image_dim[0] * first_depth * int(image_dim[1]/pow(2, conv_layer)) * int(image_dim[2]/pow(2, conv_layer))))(x)
+inp = Concatenate()([x, inp_noise])
+
+x = Dense(units = (image_dim[0] * first_depth * int(image_dim[1]/pow(2, conv_layer)) * int(image_dim[2]/pow(2, conv_layer))))(inp)
 x = BatchNormalization()(x)
 x = Activation("relu")(x)
 x = Dropout(rate = dropRate)(x)
