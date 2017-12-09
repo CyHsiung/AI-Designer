@@ -63,7 +63,7 @@ x = Activation("relu")(x)
 x = Dropout(rate = dropRate)(x)
 x = Reshape((image_dim[0] * first_depth, int(image_dim[1]/pow(2, conv_layer)), int(image_dim[2]/pow(2, conv_layer))))(x)
 for i in range(conv_layer):
-    x = Conv2D(filters = int(image_dim[0] * first_depth/pow(2, i)), kernel_size = (3, 3), strides = (1, 1), padding = 'same', name = 'gen_conv_' + str(i + 1), data_format = 'channels_first')(x)
+    x = Conv2D(filters = int(image_dim[0] * first_depth * pow(2, i)), kernel_size = (3, 3), strides = (1, 1), padding = 'same', name = 'gen_conv_' + str(i + 1), data_format = 'channels_first')(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = UpSampling2D((2, 2), data_format =  "channels_first")(x)
@@ -84,6 +84,12 @@ with open(models_dir+'/gen_model_structure', 'w') as outfile:
 
 
 # Discriminator
+inp_code = Input(shape = (code_dim, ))
+c = Dense(units = 256)(inp_code)
+c = BatchNormalization()(c)
+c = Activation("relu")(c)
+c = Dropout(rate = dropRate)(c)
+
 
 inp_image = Input(shape = image_dim)
 x = inp_image
@@ -100,6 +106,8 @@ x = BatchNormalization()(x)
 x = Activation("relu")(x)
 x = Dropout(rate = dropRate)(x)
 
+x = Concatenate()([x, c])
+
 x = Dense(units = 256)(x)
 x = BatchNormalization()(x)
 x = Activation("relu")(x)
@@ -108,10 +116,8 @@ x = Dropout(rate = dropRate)(x)
 disc = Dense(units = 2)(x)
 disc = Activation("softmax")(disc)
 
-code_out = Dense(units = code_dim)(x)
-code_out = Activation("sigmoid")(code_out)
 
-disc_model = Model(inputs = inp_image, outputs = [disc, code_out])
+disc_model = Model(inputs = [inp_image, inp_code], outputs = disc)
 # Save model structure
 model_architecture = disc_model.to_json()
 disc_model.summary()

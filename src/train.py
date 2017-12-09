@@ -29,8 +29,8 @@ corpus_dir = join(project_dir, "corpus")
 models_dir = join(project_dir, "models")
 feats_dir = join(project_dir, "feats")
 
-vectorFileName = 'train_vectors.hdf5'
-imgFileName = 'train_imgs.hdf5'
+vectorFileName = 'test_vectors.hdf5'
+imgFileName = 'test_imgs.hdf5'
 #trainFileName = 'label_train_data_train.csv'
 #testFileName = 'label_train_data_valid.csv'
 
@@ -48,7 +48,7 @@ noise_dim = 100
 image_dim = [3, 96, 96]
 batch_size = 32
 # train generator n times then train discriminator 1 time
-gen_train_ratio = 10
+gen_train_ratio = 5
 
 gen_model_structure = join(models_dir, 'gen_model_structure')
 disc_model_structure = join(models_dir, 'disc_model_structure')
@@ -123,7 +123,7 @@ def get_gen_batch(label_data, batch_size, noise_dim):
         noise = np.random.uniform(size = (batch_size, noise_dim))
         disc_out = np.zeros((batch_size, 2))
         disc_out[:, 1] = 1
-        yield ([c, noise], [disc_out, c])
+        yield ([c, noise], [disc_out])
 
 def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim):
     idx = 0
@@ -144,22 +144,31 @@ def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_
             imgFake = gen_model.predict([code, noise])
         # concatenate fake and real image into a batch
         x_train = np.concatenate((imgFake, image), axis = 0)
-        code = np.concatenate((label, label), axis = 0)
-        disc = np.zeros((2 * batch_size, 2))
+        
+        # random pick batch_size's random image
+        idxList = np.random.randint(dataLength, size = batch_size)
+        imgWrong = np.asarray([img_data[i, :, :, :] for i in idxList])
+        x_train = np.concatenate((x_train, imgWrong), axis = 0)
+        # code = np.concatenate((label, label), axis = 0)
+        code = np.concatenate((label, label, label), axis = 0)
+        disc = np.zeros((3 * batch_size, 2))
         # fake image label
         disc[:batch_size, 0] = 1
         # real image label
-        disc[batch_size :, 1] = 1
-        yield(x_train, [disc, code])
+        disc[batch_size :2 * batch_size, 1] = 1
+        # wrong image label
+        disc[2 * batch_size:, 0] = 1
+        yield([x_train, code], [disc])
         
 def train_gen_model(gen_model, disc_model, code_dim, noise_dim):
     inp_code = Input(shape = (code_dim,))
     inp_noise = Input(shape = (noise_dim, ))
     x = gen_model([inp_code, inp_noise])
-    disc_out, code_out = disc_model(x)
+    AAA = disc_model([x, inp_code])
+    disc_out  = disc_model([x, inp_code])
 
     trainGenModel = Model(inputs=[inp_code, inp_noise],
-            outputs=[disc_out, code_out])
+            outputs = disc_out)
     return trainGenModel  
         
     
@@ -191,8 +200,8 @@ def cos_sim(y_true, y_pred):
     return 1 - dot / (u * v + 0.0001)
 
 # loss for disc and code output
-list_losses = ['binary_crossentropy', cos_sim]
-list_weights = [1, 1]
+list_losses = ['binary_crossentropy']
+list_weights = [1]
 
 disc_model.trainable = False
 train_gen_model.compile(loss = list_losses, 
