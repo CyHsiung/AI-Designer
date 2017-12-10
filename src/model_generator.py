@@ -33,7 +33,7 @@ noise_dim = 100
 image_dim = [3, 96, 96]
 conv_layer = 3
 first_depth = 10
-dropRate = 0.3
+dropRate = 0
 text_compress = 256
 
 # make model directory

@@ -48,7 +48,7 @@ noise_dim = 100
 image_dim = [3, 96, 96]
 batch_size = 32
 # train generator n times then train discriminator 1 time
-gen_train_ratio = 5
+gen_train_ratio = 2
 
 gen_model_structure = join(models_dir, 'gen_model_structure')
 disc_model_structure = join(models_dir, 'disc_model_structure')
@@ -158,6 +158,11 @@ def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_
         disc[batch_size :2 * batch_size, 1] = 1
         # wrong image label
         disc[2 * batch_size:, 0] = 1
+        idxList = np.arange(3 * batch_size)
+        np.random.shuffle(idxList)
+        x_train = np.asarray([x_train[i, :, :, :] for i in idxList])
+        code = np.asarray([code[i, :] for i in idxList])
+        disc = np.asarray([disc[i, :] for i in idxList])
         yield([x_train, code], [disc])
         
 def train_gen_model(gen_model, disc_model, code_dim, noise_dim):

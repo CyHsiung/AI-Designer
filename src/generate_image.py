@@ -59,21 +59,14 @@ def display(imgArr):
     plt.show()
 
 if __name__ == '__main__':
-    imgFileName = 'test_imgs.hdf5'
-    img_data = get_img_data(imgFileName)
-    print(img_data[0])
-    print(img_data[0].shape)
-    print(img_data.shape)
-    display(img_data[:1,:,:,:])
-    input('qq')
     
     # parameter
     noise_dim = 100
     imgNum = 4
 
     # model and weight name
-    modelName ='infoGAN_171209_170910'
-    weightName = 'gen_weight_5'
+    modelName ='infoGAN_171209_175038'
+    weightName = 'gen_weight_90'
     models_dir = join(models_dir, modelName)
 
     # load variable (change with different model)
