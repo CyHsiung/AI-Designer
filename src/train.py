@@ -42,7 +42,7 @@ saveModelName = 'infoGAN_' + datetime.datetime.now().strftime('%y%m%d_%H%M%S')
 models_dir = join(models_dir, loadModelName)
 # parameter
 # modify as needed
-nEpoch = 100
+nEpoch = 1000
 code_dim = 4800
 noise_dim = 100
 image_dim = [3, 96, 96]
@@ -87,7 +87,7 @@ disc_model = model_from_json(model_architecture)
 if loadWeight:
     model.load_weights(model_weight_path, by_name = True)
 '''
-
+'''
 gen_model.compile(loss='mean_squared_error', # using the cross-entropy loss function
               optimizer='adam', # using the Adam optimiser
               metrics=['accuracy'])
@@ -95,6 +95,7 @@ gen_model.compile(loss='mean_squared_error', # using the cross-entropy loss func
 disc_model.compile(loss='mean_squared_error', # using the cross-entropy loss function
               optimizer='adam', # using the Adam optimiser
               metrics=['accuracy'])
+'''
 
 def get_vector_data(filename):
     with h5py.File(join(corpus_dir, filename), "r") as f:
@@ -121,8 +122,8 @@ def get_gen_batch(label_data, batch_size, noise_dim):
         c = label_data[idx: idx + batch_size, :]
         idx += batch_size
         noise = np.random.uniform(size = (batch_size, noise_dim))
-        disc_out = np.zeros((batch_size, 2))
-        disc_out[:, 1] = 1
+        disc_out = np.zeros((batch_size, 1))
+        disc_out[:, 0] = 1
         yield ([c, noise], [disc_out])
 
 def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim):
@@ -151,13 +152,11 @@ def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_
         x_train = np.concatenate((x_train, imgWrong), axis = 0)
         # code = np.concatenate((label, label), axis = 0)
         code = np.concatenate((label, label, label), axis = 0)
-        disc = np.zeros((3 * batch_size, 2))
-        # fake image label
-        disc[:batch_size, 0] = 1
-        # real image label
-        disc[batch_size :2 * batch_size, 1] = 1
-        # wrong image label
-        disc[2 * batch_size:, 0] = 1
+        disc = np.zeros((3 * batch_size, 1))
+        # denote real image with correct word vector as 1
+        disc[batch_size :2 * batch_size, 0] = 1
+
+        # shuffle the order of input
         idxList = np.arange(3 * batch_size)
         np.random.shuffle(idxList)
         x_train = np.asarray([x_train[i, :, :, :] for i in idxList])
@@ -205,18 +204,20 @@ def cos_sim(y_true, y_pred):
     return 1 - dot / (u * v + 0.0001)
 
 # loss for disc and code output
-list_losses = ['binary_crossentropy']
+list_losses = ['mean_squared_error']
 list_weights = [1]
 
+rmspropGen = keras.optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
 disc_model.trainable = False
 train_gen_model.compile(loss = list_losses, 
                         loss_weights = list_weights, 
-                        optimizer = 'adam' # using the Adam optimiser)
+                        optimizer = rmspropGen
                         )
+rmspropDist = keras.optimizers.RMSprop(lr=0.001, rho=0.9, epsilon=1e-08, decay=0.0)
 disc_model.trainable = True
 disc_model.compile(loss = list_losses, 
                         loss_weights = list_weights, 
-                        optimizer = 'adam' # using the Adam optimiser)
+                        optimizer = rmspropDist 
                         )
 
 #img_data: N * img_dim
