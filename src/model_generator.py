@@ -10,7 +10,7 @@ from keras import regularizers
 from keras.models import Sequential
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout, Activation, Flatten, Concatenate, Reshape, BatchNormalization, UpSampling2D
-from keras.layers import Conv2D, MaxPooling2D
+from keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose
 from keras.utils import np_utils
 
 from keras.layers import add
@@ -32,8 +32,9 @@ code_dim = 4800
 noise_dim = 100
 image_dim = [3, 96, 96]
 conv_layer = 3
-first_depth = 10
-dropRate = 0
+first_depth = 5 
+first_kernel = 8
+dropRate = 0.3
 text_compress = 256
 
 # make model directory
@@ -63,16 +64,21 @@ x = Activation("relu")(x)
 x = Dropout(rate = dropRate)(x)
 x = Reshape((image_dim[0] * first_depth, int(image_dim[1]/pow(2, conv_layer)), int(image_dim[2]/pow(2, conv_layer))))(x)
 for i in range(conv_layer):
-    x = Conv2D(filters = int(image_dim[0] * first_depth * pow(2, i)), kernel_size = (3, 3), strides = (1, 1), padding = 'same', name = 'gen_conv_' + str(i + 1), data_format = 'channels_first')(x)
+    out_channel_size = int(image_dim[0] * first_depth * pow(2, i))
+    # cur_kernel_size = int(first_kernel/pow(2, i))
+    cur_kernel_size = 3 + 2 * i
+    x = Conv2DTranspose(filters = out_channel_size, kernel_size = (cur_kernel_size, cur_kernel_size), strides = (2, 2), padding = 'same', name = 'gen_conv_' + str(i + 1), data_format = 'channels_first')(x)
+    
+    # x = Conv2D(filters = int(image_dim[0] * first_depth * pow(2, i)), kernel_size = (3, 3), strides = (1, 1), padding = 'same', name = 'gen_conv_' + str(i + 1), data_format = 'channels_first')(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
-    x = UpSampling2D((2, 2), data_format =  "channels_first")(x)
+    # x = UpSampling2D((2, 2), data_format =  "channels_first")(x)
     x = Dropout(rate = dropRate)(x)
 
-x = Conv2D(filters = image_dim[0], kernel_size = (3, 3), strides = (1, 1), padding = 'same', name = 'gen_conv_' + str(conv_layer + 1), data_format = 'channels_first')(x)
+x = Conv2DTranspose(filters = image_dim[0], kernel_size = (cur_kernel_size, cur_kernel_size), strides = (1, 1), padding = 'same', name = 'gen_conv_' + str(conv_layer + 1), data_format = 'channels_first')(x)
 x = BatchNormalization()(x)
-x = Activation('relu')(x)
-x = Activation('tanh')(x)
+# x = Activation('relu')(x)
+x = Activation('sigmoid')(x)
 gen_model = Model(inputs = [inp_code, inp_noise], outputs = x)
 gen_model.summary()
 input('gen')
@@ -94,7 +100,10 @@ c = Dropout(rate = dropRate)(c)
 inp_image = Input(shape = image_dim)
 x = inp_image
 for i in range(conv_layer):
-    x = Conv2D(filters = first_depth * pow(2, (i)), kernel_size = (3, 3), strides = (1, 1), padding = 'same', name = 'dist_conv_' + str(i + 1), data_format =  "channels_first")(x)
+    out_channel_size = int(image_dim[0] * pow(2, i)) * 3
+    # cur_kernel_size = int(first_kernel/pow(2, 2 - i))
+    cur_kernel_size = 7 - 2 * i
+    x = Conv2D(filters = out_channel_size, kernel_size = (cur_kernel_size, cur_kernel_size), strides = (1, 1), padding = 'same', name = 'dist_conv_' + str(i + 1), data_format =  "channels_first")(x)
     x = BatchNormalization()(x)
     x = Activation('relu')(x)
     x = MaxPooling2D(pool_size=(2, 2), data_format='channels_first')(x)
@@ -114,7 +123,7 @@ x = Activation("relu")(x)
 x = Dropout(rate = dropRate)(x)
 
 disc = Dense(units = 2)(x)
-disc = Activation("softmax")(disc)
+# disc = Activation("relu")(disc)
 
 
 disc_model = Model(inputs = [inp_image, inp_code], outputs = disc)
