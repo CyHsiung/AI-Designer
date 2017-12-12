@@ -43,9 +43,9 @@ models_dir = join(models_dir, loadModelName)
 # parameter
 # modify as needed
 nEpoch = 1000
-code_dim = 4800
+code_dim = 2400
 noise_dim = 100
-image_dim = [3, 96, 96]
+image_dim = [3, 64, 64]
 batch_size = 32
 # train generator n times then train discriminator 1 time
 gen_train_ratio = 2
@@ -108,6 +108,7 @@ def get_img_data(filename):
     return img_data
 
 label_data = get_vector_data(vectorFileName)
+label_data = label_data[:, :code_dim]
 img_data = get_img_data(imgFileName)
 # normalize data between 0 ~ 1
 #img_data = img_data/255
@@ -226,6 +227,7 @@ disc_model.compile(loss = list_losses,
 K.get_session().run(tf.global_variables_initializer())
 #img_data: N * img_dim
 #label_data: N * caption_vector_len
+text_file = open(join(models_dir, "loss.txt"), "w")
 minLoss = float('Inf')
 graph = tf.get_default_graph()
 for i in range(nEpoch):
@@ -236,13 +238,13 @@ for i in range(nEpoch):
     disc_model.trainable = False
     gen_loss = train_gen_model.fit_generator(get_gen_batch(label_data, batch_size, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = gen_train_ratio)
     # 0 is total loss
-    gen_loss = gen_loss.history['loss'] 
+    gen_loss = gen_loss.history['loss']
     disc_model.trainable = True
-    graph = tf.get_default_graph()
-    
+    graph = tf.get_default_graph() 
     if (i + 1) % 5 == 0:
         gen_model.save_weights(join(models_dir, 'gen_weight_'+ str(i + 1)))
         disc_model.save_weights(join(models_dir, 'disc_weight_' + str(i + 1)))
+        text_file.write('epoch: %d generator_loss: %f discriminator_loss : %f ' % ( i + 1, gen_loss[0], disc_loss[0]))
         print('Save model epoch: ', i + 1)
 
-
+text_file.close()
