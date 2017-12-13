@@ -130,45 +130,41 @@ def get_gen_batch(label_data, batch_size, noise_dim):
 def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim):
     idx = 0
     dataLength = img_data.shape[0]
-    img_round = 0
     while 1:
-        # real image with correct code
-        if img_round == 0:
-            if idx + batch_size > dataLength:
-                idx = 0
-            # get image and label data
-            image = img_data[idx : idx + batch_size, :, :, :]
-            code = label_data[idx: idx + batch_size, :]
-            # disc_out = np.random.uniform(low=0.7, high=1.2, size = (batch_size, 1))
-            disc_out = np.ones((batch_size, 1))
-            img_round += 1
-            yield([image, code], [disc_out])
-        # real image with wrong code
-        elif img_round == 1:
-            image = img_data[idx : idx + batch_size, :, :, :]
-            # random pick batch_size's random code
-            idxList = np.random.randint(dataLength, size = batch_size)
-            code_wrong = np.asarray([label_data[i, :] for i in idxList])
-            disc_out = np.zeros((batch_size, 1))
-            img_round += 1
-            yield([image, code_wrong], [disc_out])
-        # fake image
-        elif img_round == 2:
-            code = label_data[idx: idx + batch_size, :]
-            idx += batch_size
-            # generate noise
-            noise = np.random.uniform(low = -1.0, high = 1.0, size = (batch_size, noise_dim))
-            # generate image
-            global graph
-            with graph.as_default():
-                imgFake = gen_model.predict([code, noise])
-            disc_out = np.zeros((batch_size, 1))
-            # disc_out = np.random.uniform(low=0.0, high=0.3, size = (batch_size, 1))
-            img_round = 0
-            yield([imgFake, code], [disc_out])
-        else:
-            raise ValueError('unvalid round')
-            
+        if idx + batch_size >= dataLength:
+            idx = 0
+        # get image and label data
+        image = img_data[idx : idx + batch_size, :, :, :]
+        label = label_data[idx: idx + batch_size, :code_dim]
+        idx += batch_size
+        # generate noise
+        noise = np.random.uniform(low = -1.0, high = 1.0, size = (batch_size, noise_dim))
+        code = label
+        # generate image
+        global graph
+        with graph.as_default():
+            imgFake = gen_model.predict([code, noise])
+        # concatenate fake and real image into a batch
+        x_train = np.concatenate((imgFake, image), axis = 0)
+        
+        # random pick batch_size's random image
+        idxList = np.random.randint(dataLength, size = batch_size)
+        imgWrong = np.asarray([img_data[i, :, :, :] for i in idxList])
+        x_train = np.concatenate((x_train, imgWrong), axis = 0)
+        # code = np.concatenate((label, label), axis = 0)
+        code = np.concatenate((label, label, label), axis = 0)
+        disc = np.zeros((3 * batch_size, 1))
+        # denote real image with correct word vector as 1
+        disc[batch_size :2 * batch_size, 0] = 1
+
+        # shuffle the order of input
+        idxList = np.arange(3 * batch_size)
+        np.random.shuffle(idxList)
+        x_train = np.asarray([x_train[i, :, :, :] for i in idxList])
+        code = np.asarray([code[i, :] for i in idxList])
+        disc = np.asarray([disc[i, :] for i in idxList])
+        yield([x_train, code], [disc]) 
+
         
 def train_gen_model(gen_model, disc_model, code_dim, noise_dim):
     inp_code = Input(shape = (code_dim,))
@@ -232,7 +228,7 @@ minLoss = float('Inf')
 graph = tf.get_default_graph()
 for i in range(nEpoch):
     print('Epoch: ', i + 1)
-    disc_loss = disc_model.fit_generator(get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim), steps_per_epoch = int(3 * label_data.shape[0]/batch_size), epochs = 1) 
+    disc_loss = disc_model.fit_generator(get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_dim), steps_per_epoch = int(label_data.shape[0]/batch_size), epochs = 1) 
     # 0 is total loss
     disc_loss = disc_loss.history['loss']
     disc_model.trainable = False
@@ -241,10 +237,10 @@ for i in range(nEpoch):
     gen_loss = gen_loss.history['loss']
     disc_model.trainable = True
     graph = tf.get_default_graph() 
+    text_file.write('epoch: %d generator_loss: %f discriminator_loss : %f\n' % ( i + 1, gen_loss[0], disc_loss[0]))
     if (i + 1) % 5 == 0:
         gen_model.save_weights(join(models_dir, 'gen_weight_'+ str(i + 1)))
         disc_model.save_weights(join(models_dir, 'disc_weight_' + str(i + 1)))
-        text_file.write('epoch: %d generator_loss: %f discriminator_loss : %f ' % ( i + 1, gen_loss[0], disc_loss[0]))
         print('Save model epoch: ', i + 1)
 
 text_file.close()
