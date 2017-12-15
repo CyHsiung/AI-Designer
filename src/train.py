@@ -210,14 +210,17 @@ list_losses = ['mean_squared_error']
 list_weights = [1]
 
 disc_model.trainable = False
+
+rmspropGen = keras.optimizers.RMSprop(lr=0.0001, rho=0.9, epsilon=1e-08, decay=0.0)
 train_gen_model.compile(loss = list_losses, 
                         loss_weights = list_weights, 
-                        optimizer = 'adam'
+                        optimizer = rmspropGen
                         )
 disc_model.trainable = True
+rmspropDisc = keras.optimizers.RMSprop(lr=0.0001, rho=0.9, epsilon=1e-08, decay=0.0)
 disc_model.compile(loss = list_losses, 
                         loss_weights = list_weights, 
-                        optimizer = 'adam'
+                        optimizer = rmspropDisc
                         )
 
 K.get_session().run(tf.global_variables_initializer())
