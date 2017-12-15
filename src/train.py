@@ -42,7 +42,7 @@ saveModelName = 'infoGAN_' + datetime.datetime.now().strftime('%y%m%d_%H%M%S')
 models_dir = join(models_dir, loadModelName)
 # parameter
 # modify as needed
-nEpoch = 1000
+nEpoch = 2000
 code_dim = 2400
 noise_dim = 100
 image_dim = [3, 64, 64]
