@@ -43,7 +43,7 @@ models_dir = join(models_dir, loadModelName)
 # parameter
 # modify as needed
 nEpoch = 2000
-code_dim = 2400
+code_dim = 4800
 noise_dim = 100
 image_dim = [3, 64, 64]
 batch_size = 32
@@ -270,7 +270,6 @@ disc_model.compile(loss = list_losses,
 K.get_session().run(tf.global_variables_initializer())
 #img_data: N * img_dim
 #label_data: N * caption_vector_len
-text_file = open(join(models_dir, "loss.txt"), "w")
 minLoss = float('Inf')
 graph = tf.get_default_graph()
 for i in range(nEpoch):

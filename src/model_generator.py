@@ -28,7 +28,7 @@ feats_dir = join(project_dir, "feats")
 
 # parameter
 # modify as needed
-code_dim = 2400
+code_dim = 4800
 noise_dim = 100
 image_dim = [3, 64, 64]
 conv_layer = 4
