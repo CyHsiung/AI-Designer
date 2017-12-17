@@ -1,13 +1,14 @@
 import numpy as np
-from os.path import basename, splitext, join
+from os.path import basename, join
 import json
 import math
 import os
 import h5py
+import argparse
+from skimage.io import imsave
 
 #keras import
 import keras
-
 from keras.models import model_from_json
 from keras.layers.wrappers import TimeDistributed
 from keras.layers import Flatten, Dense, Dropout
@@ -18,82 +19,70 @@ from keras.utils import np_utils
 from keras.optimizers import SGD, Adam, RMSprop, Adagrad
 from keras.callbacks import ModelCheckpoint, EarlyStopping, LearningRateScheduler, Callback
 
-import matplotlib.pylab as plt
+NOISE_DIM = 100
+CODE_DIM = 4800
 
-project_dir = "../"
-
-result_dir = join(project_dir, "results")
-corpus_dir = join(project_dir, "corpus")
-models_dir = join(project_dir, "models")
-feats_dir = join(project_dir, "feats")
-
-
-def get_vector_data(filename):
-    with h5py.File(join(corpus_dir, filename), "r") as f:
+def get_vector_data(path):
+    with h5py.File(path, "r") as f:
         vector_data = f['vectors'][()]
     return vector_data 
 
-def get_img_data(filename):
-    with h5py.File(join(corpus_dir, filename), "r") as f:
+def get_img_data(path):
+    with h5py.File(path, "r") as f:
         img_data = f['imgs'][()]
     return img_data
 
-def get_gen_batch(wordVector, imgNum, noise_dim):
-    c = wordVector
-    word_batch = [c] * imgNum
-    word_batch = np.asarray(word_batch)
-    print('word_batch shape: ', word_batch.shape)
-    noise = np.random.uniform(size = (imgNum, noise_dim))
-    print(noise.shape)
+def get_gen_batch(vector, n, noise_dim):
+    word_batch = np.array([vector] * n)
+    noise = np.random.uniform(size = (n, noise_dim))
     return [word_batch, noise]
 
-def display(imgArr):
-    plt.figure()
-    # imgArr = imgArr.reshape(imgArr.shape[0], imgArr.shape[2], imgArr.shape[3], imgArr.shape[1])
-    imgNum = imgArr.shape[0]
-    print(imgArr.shape)
-    for i in range(imgNum):
-        img = plt.subplot(imgNum, 1, i + 1)
-        img.imshow(imgArr[i, :, :, :].transpose(1,2,0))
-    plt.savefig(join(result_dir, "generate_image.png"))
-    plt.show()
-
 if __name__ == '__main__':
-    
-    # parameter
-    noise_dim = 100
-    imgNum = 4
+    # parse argument
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--model-path',
+                        type=str,
+                        required=True)
+    parser.add_argument('--epochs',
+                        type=int,
+                        nargs='+',
+                        required=True)
+    parser.add_argument('--input-vector',
+                        type=str,
+                        required=True)
+    parser.add_argument('--num-images-per-vector',
+                        type=int,
+                        default=4)
+    parser.add_argument('--output-path',
+                        type=str,
+                        default='')
 
-    # model and weight name
-    modelName ='infoGAN_171209_175038'
-    weightName = 'gen_weight_90'
-    models_dir = join(models_dir, modelName)
+    args = parser.parse_args()
+    model_path = args.model_path
+    epochs = args.epochs
+    input_vector_path = args.input_vector
+    num_img = args.num_images_per_vector
+    output_path = args.output_path
 
-    # load variable (change with different model)
-    vectorFileName = 'test_vectors.hdf5'
+    model_name = basename(model_path)
 
-    model_structure = join(models_dir, 'gen_model_structure')
-
-    model_weight_path = join(models_dir, weightName)
+    # load word vector
+    label_data = get_vector_data(input_vector_path)
 
     # load model structure and weight
-    with open(model_structure) as json_file:
-        model_architecture = json.load(json_file)
+    model_structure_path = join(model_path, 'gen_model_structure')
+    with open(model_structure_path) as json_file:
+        model_structure = json.load(json_file)
+    gen_model = model_from_json(model_structure)
 
-    gen_model = model_from_json(model_architecture)
+    for epoch in epochs:
+        model_weight_path = join(model_path, 'gen_weight_{}'.format(epoch))
+        gen_model.load_weights(model_weight_path, by_name=False)
+        imgs_comb = []
+        for i, word_vec in enumerate(label_data):
+            img_tensor = gen_model.predict(get_gen_batch(word_vec, num_img, NOISE_DIM))
+            img_split = np.split(img_tensor.transpose(0, 2, 3, 1), num_img, axis=0)
+            imgs_comb.append(np.squeeze(np.concatenate(img_split, axis=2)))
+        np.concatenate(imgs_comb, axis=0)
+        imsave(join(output_path, '{}_epoch{}.png'.format(model_name, epoch)), np.concatenate(imgs_comb, axis=0))
 
-    gen_model.load_weights(model_weight_path, by_name=False)
-    # load word vector file
-    label_data = get_vector_data(vectorFileName)
-    print(label_data.shape)
-    word_vec = label_data[20]
-    
-    # generator produce image vectors
-    img_vector = gen_model.predict(get_gen_batch(word_vec, imgNum, noise_dim))
-    print(img_vector.shape)
-    print(img_vector[0,:,:,:])
-    display(img_vector)
-    
-
-    
-    

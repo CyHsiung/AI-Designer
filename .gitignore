@@ -14,3 +14,7 @@ VENV
 
 #jupyter
 *.ipynb
+
+#images
+*.png
+*.jpg
