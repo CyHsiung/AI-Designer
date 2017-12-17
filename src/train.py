@@ -125,7 +125,7 @@ def get_gen_batch(label_data, batch_size, noise_dim):
             idx = 0
         c = label_data[idx: idx + batch_size, :]
         idx += batch_size
-        noise = np.random.uniform(low = 0.0, high = 1.0, size = (batch_size, noise_dim))
+        noise = np.random.uniform(low = -1.0, high = 1.0, size = (batch_size, noise_dim))
         # disc_out = np.random.uniform(low=0.7, high=1.2, size = (batch_size, 1))
         disc_out = np.ones((batch_size, 1))
         yield ([c, noise], [disc_out])
