@@ -10,7 +10,7 @@ from keras import regularizers
 from keras.models import Sequential
 from keras.models import Model
 from keras.layers import Input, Dense, Dropout, Activation, Flatten, Concatenate, Reshape, BatchNormalization, UpSampling2D
-from keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose, Lambda
+from keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose, Lambda, LeakyReLU
 from keras.utils import np_utils
 
 from keras.layers import add
@@ -37,6 +37,7 @@ gen_first_kernel = 2
 disc_first_channel = 64
 dropRate = 0.3
 text_compress = 256
+lrelu_alpha = 0.2
 
 # make model directory
 os.makedirs(join(models_dir, modelName))
@@ -80,8 +81,9 @@ for i in range(conv_layer - 1):
 cur_kernel_size *= 2
 x = Conv2DTranspose(filters = image_dim[0], kernel_size = (cur_kernel_size, cur_kernel_size), strides = (2, 2), padding = 'same', name = 'gen_conv_' + str(conv_layer + 1), data_format = 'channels_first')(x)
 x = BatchNormalization()(x)
-# x = Activation('relu')(x)
-x = Activation('sigmoid')(x)
+x = Activation('tanh')(x)
+x = Lambda(lambda x : x/2. + 0.5)(x)
+# x = Activation('sigmoid')(x)
 gen_model = Model(inputs = [inp_code, inp_noise], outputs = x)
 gen_model.summary()
 input('gen')
@@ -96,7 +98,7 @@ with open(models_dir+'/gen_model_structure', 'w') as outfile:
 inp_code = Input(shape = (code_dim, ))
 c = Dense(units = text_compress)(inp_code)
 c = BatchNormalization()(c)
-c = Activation("relu")(c)
+c = LeakyReLU(alpha = lrelu_alpha)(c)
 # c = Dropout(rate = dropRate)(c)
 # Lambda function make operation possible, if not used -> form keras_tensor back to normal tensor and failed
 c = Lambda(lambda x: K.expand_dims(x, axis = 2))(c)
@@ -115,19 +117,21 @@ for i in range(conv_layer):
     out_channel_size = disc_first_channel * pow(2, i)
     # cur_kernel_size = int(first_kernel/pow(2, 2 - i))
     cur_kernel_size = 5
-    x = Conv2D(filters = out_channel_size, kernel_size = (cur_kernel_size, cur_kernel_size), strides = (1, 1), padding = 'same', name = 'dist_conv_' + str(i + 1), data_format =  "channels_first")(x)
+    x = Conv2D(filters = out_channel_size, kernel_size = (cur_kernel_size, cur_kernel_size), strides = (2, 2), padding = 'same', name = 'dist_conv_' + str(i + 1), data_format =  "channels_first")(x)
+    # x = Conv2D(filters = out_channel_size, kernel_size = (cur_kernel_size, cur_kernel_size), strides = (1, 1), padding = 'same', name = 'dist_conv_' + str(i + 1), data_format =  "channels_first")(x)
     x = BatchNormalization()(x)
-    x = Activation('relu')(x)
-    x = MaxPooling2D(pool_size=(2, 2), data_format='channels_first')(x)
+    x = LeakyReLU(alpha = lrelu_alpha)(x)
+    # x = MaxPooling2D(pool_size=(2, 2), data_format='channels_first')(x)
     x = Dropout(rate = dropRate)(x)
 
 cur_kernel_size = 2
 out_channel_size = 128
 x = Concatenate(axis = 1)([x, c])
-x = Conv2D(filters = out_channel_size, kernel_size = (cur_kernel_size, cur_kernel_size), strides = (1, 1), padding = 'same', name = 'dist_conv_' + str(i + 2), data_format =  "channels_first")(x)
+x = Conv2D(filters = out_channel_size, kernel_size = (cur_kernel_size, cur_kernel_size), strides = (2, 2), padding = 'same', name = 'dist_conv_' + str(i + 2), data_format =  "channels_first")(x)
+# x = Conv2D(filters = out_channel_size, kernel_size = (cur_kernel_size, cur_kernel_size), strides = (1, 1), padding = 'same', name = 'dist_conv_' + str(i + 2), data_format =  "channels_first")(x)
 x = BatchNormalization()(x)
-x = Activation('relu')(x)
-x = MaxPooling2D(pool_size=(2, 2), data_format='channels_first')(x)
+x = LeakyReLU(alpha = lrelu_alpha)(x)
+# x = MaxPooling2D(pool_size=(2, 2), data_format='channels_first')(x)
 x = Dropout(rate = dropRate)(x)
 
 
