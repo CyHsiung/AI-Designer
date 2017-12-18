@@ -49,8 +49,11 @@ def download_dataset(data_name):
             'bi_skip.npz.pkl',
         ]
         for filename in skipthoughts_files:
+            if os.path.exists(os.path.join(SKIPTHOUGHTS_DIR, filename)):
+                print('Skip the downloaded file \'{}\''.format(filename))
+                continue
             src_url = SKIPTHOUGHTS_BASE_URL + filename
-            print('Downloading ' + src_url)
+            print('\nDownloading ' + src_url)
             urlretrieve(src_url, os.path.join(SKIPTHOUGHTS_DIR, filename),
                         reporthook=dl_progress_hook)
 
@@ -61,11 +64,8 @@ def download_dataset(data_name):
     else:
         raise ValueError('Unknown dataset name: ' + data_name)
 
-
-def main():
+if __name__ == '__main__':
     create_data_paths()
     # TODO: make configurable via command-line
     download_dataset('skipthoughts')
     download_dataset('nltk_punkt')
-if __name__ == '__main__':
-main()

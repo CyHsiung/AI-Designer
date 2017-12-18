@@ -68,4 +68,4 @@ def main():
     download_dataset('skipthoughts')
     download_dataset('nltk_punkt')
 if __name__ == '__main__':
-main()
+    main()

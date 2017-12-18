@@ -32,7 +32,7 @@ python generate_image.py \
 * Follow the instructions in `reference_method/README.md` to generate reference images
 
 ### Dependencies
-Python 3
+Python 3  
 See `requirements.txt` for used packages
 
 [Dataset](https://drive.google.com/drive/folders/0BwJmB7alR-AvMHEtczZZN0EtdzQ)  
