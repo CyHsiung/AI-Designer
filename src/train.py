@@ -29,10 +29,8 @@ corpus_dir = join(project_dir, "corpus")
 models_dir = join(project_dir, "models")
 feats_dir = join(project_dir, "feats")
 
-vectorFileName = 'test_vectors.hdf5'
-imgFileName = 'test_imgs.hdf5'
-#trainFileName = 'label_train_data_train.csv'
-#testFileName = 'label_train_data_valid.csv'
+vectorFileName = 'train_vectors.hdf5'
+imgFileName = 'train_imgs.hdf5'
 
 loadWeight = False
 
@@ -53,52 +51,21 @@ gen_train_ratio = 2
 gen_model_structure = join(models_dir, 'gen_model_structure')
 disc_model_structure = join(models_dir, 'disc_model_structure')
 
-# model_weight_path = join(models_dir, 'initialize_weight')
-
-
-# Read file 
-#X, Y = read_train_file(trainFileName, freq, secLength)
-
-
-#trainLength = int(trainRatio * len(X))
-#X_train = X
-#Y_train = Y
-
-#testList = read_test_file(testFileName, freq, secLength)
-# new model directory for new parameter
-models_dir = join(project_dir, "models")
-
 # make model directory
 os.makedirs(join(models_dir, saveModelName))
 models_dir = join(models_dir, saveModelName)
-
 os.system('cp ./model_generator.py ' + join(models_dir, 'model_generator.py'))
 os.system('cp ./train.py ' + join(models_dir, 'train.py'))
 
 # load generator model structure and weight
 with open(gen_model_structure) as json_file:
     model_architecture = json.load(json_file)
-
 gen_model = model_from_json(model_architecture)
+
 # load discriminator model structure and weight
 with open(disc_model_structure) as json_file:
     model_architecture = json.load(json_file)
-
 disc_model = model_from_json(model_architecture)
-
-'''
-if loadWeight:
-    model.load_weights(model_weight_path, by_name = True)
-'''
-'''
-gen_model.compile(loss='mean_squared_error', # using the cross-entropy loss function
-              optimizer='adam', # using the Adam optimiser
-              metrics=['accuracy'])
-
-disc_model.compile(loss='mean_squared_error', # using the cross-entropy loss function
-              optimizer='adam', # using the Adam optimiser
-              metrics=['accuracy'])
-'''
 
 def get_vector_data(filename):
     with h5py.File(join(corpus_dir, filename), "r") as f:
@@ -113,9 +80,6 @@ def get_img_data(filename):
 label_data = get_vector_data(vectorFileName)
 label_data = label_data[:, :code_dim]
 img_data = get_img_data(imgFileName)
-# normalize data between 0 ~ 1
-#img_data = img_data/255
-#print('data shape: ', label_data.shape, img_data.shape)
 
 def get_gen_batch(label_data, batch_size, noise_dim):
     idx = 0
@@ -171,42 +135,6 @@ def get_disc_batch(img_data, label_data, gen_model, batch_size, code_dim, noise_
             yield([imgFake, code], [disc_out])
         else:
             raise ValueError('unvalid round')
-    '''
-    while 1:
-        if idx + batch_size >= dataLength:
-            idx = 0
-        # get image and label data
-        image = img_data[idx : idx + batch_size, :, :, :]
-        label = label_data[idx: idx + batch_size, :code_dim]
-        idx += batch_size
-        # generate noise
-        noise = np.random.uniform(low = 0.0, high = 1.0, size = (batch_size, noise_dim))
-        code = label
-        # generate image
-        global graph
-        with graph.as_default():
-            imgFake = gen_model.predict([code, noise])
-        # concatenate fake and real image into a batch
-        x_train = np.concatenate((imgFake, image), axis = 0)
-        
-        # random pick batch_size's random image
-        idxList = np.random.randint(dataLength, size = batch_size)
-        imgWrong = np.asarray([img_data[i, :, :, :] for i in idxList])
-        x_train = np.concatenate((x_train, imgWrong), axis = 0)
-        # code = np.concatenate((label, label), axis = 0)
-        code = np.concatenate((label, label, label), axis = 0)
-        disc = np.zeros((3 * batch_size, 1))
-        # denote real image with correct word vector as 1
-        disc[batch_size :2 * batch_size, 0] = 1
-
-        # shuffle the order of input
-        idxList = np.arange(3 * batch_size)
-        np.random.shuffle(idxList)
-        x_train = np.asarray([x_train[i, :, :, :] for i in idxList])
-        code = np.asarray([code[i, :] for i in idxList])
-        disc = np.asarray([disc[i, :] for i in idxList])
-        yield([x_train, code], [disc]) 
-    '''
         
 def train_gen_model(gen_model, disc_model, code_dim, noise_dim):
     inp_code = Input(shape = (code_dim,))
@@ -219,9 +147,6 @@ def train_gen_model(gen_model, disc_model, code_dim, noise_dim):
             outputs = disc_out)
     return trainGenModel  
         
-    
-# model.get_weights()
-# model.summary()
 
 # Save generator model structure
 model_architecture = gen_model.to_json()
@@ -236,21 +161,12 @@ with open(models_dir+'/disc_model_structure', 'w') as outfile:
     json.dump(model_architecture, outfile)
 
 
-# acc_highest = prior[0]
-#acc_highest = 0
-#print(acc_highest)
 train_gen_model = train_gen_model(gen_model, disc_model, code_dim, noise_dim)
-# cosine similarity
-def cos_sim(y_true, y_pred):
-    dot = K.sum(y_true * y_pred, axis = 1)
-    u = K.sqrt(K.sum(K.square(y_true), axis = 1))
-    v = K.sqrt(K.sum(K.square(y_pred), axis = 1))
-    return 1 - dot / (u * v + 0.0001)
 
 # loss for disc and code output
 def loss_function(y_true, y_predict):
     return K.square(K.binary_crossentropy(y_true, y_predict, from_logits=True))
-list_losses = [loss_function]
+list_losses = ['mean_squared_error']
 list_weights = [1]
 
 disc_model.trainable = False
