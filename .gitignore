@@ -1,6 +1,7 @@
 results
 models
 corpus
+src/vectorEncoder/Data/
 
 #VSCode
 .vscode

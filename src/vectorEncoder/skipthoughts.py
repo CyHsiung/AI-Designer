@@ -7,7 +7,7 @@ import os
 import theano
 import theano.tensor as tensor
 
-import cPickle as pkl
+import pickle as pkl
 import numpy
 import copy
 import nltk
@@ -34,7 +34,7 @@ def load_model():
 	Load the model with saved tables
 	"""
 	# Load model options
-	print 'Loading model parameters...'
+	print('Loading model parameters...')
 	with open('%s.pkl'%path_to_umodel, 'rb') as f:
 		uoptions = pkl.load(f)
 	with open('%s.pkl'%path_to_bmodel, 'rb') as f:
@@ -49,18 +49,18 @@ def load_model():
 	btparams = init_tparams(bparams)
 
 	# Extractor functions
-	print 'Compiling encoders...'
+	print('Compiling encoders...')
 	embedding, x_mask, ctxw2v = build_encoder(utparams, uoptions)
 	f_w2v = theano.function([embedding, x_mask], ctxw2v, name='f_w2v')
 	embedding, x_mask, ctxw2v = build_encoder_bi(btparams, boptions)
 	f_w2v2 = theano.function([embedding, x_mask], ctxw2v, name='f_w2v2')
 
 	# Tables
-	print 'Loading tables...'
+	print('Loading tables...')
 	utable, btable = load_tables()
 
 	# Store everything we need in a dictionary
-	print 'Packing up...'
+	print('Packing up...')
 	model = {}
 	model['uoptions'] = uoptions
 	model['boptions'] = boptions
@@ -77,14 +77,14 @@ def load_tables():
 	Load the tables
 	"""
 	words = []
-	utable = numpy.load(path_to_tables + 'utable.npy')
-	btable = numpy.load(path_to_tables + 'btable.npy')
+	utable = numpy.load(path_to_tables + 'utable.npy', encoding='latin1')
+	btable = numpy.load(path_to_tables + 'btable.npy', encoding='latin1')
 	f = open(path_to_tables + 'dictionary.txt', 'rb')
 	for line in f:
 		words.append(line.decode('utf-8').strip())
 	f.close()
-	utable = OrderedDict(zip(words, utable))
-	btable = OrderedDict(zip(words, btable))
+	utable = OrderedDict(list(zip(words, utable)))
+	btable = OrderedDict(list(zip(words, btable)))
 	return utable, btable
 
 
@@ -94,11 +94,11 @@ def encode(model, X, use_norm=True, verbose=True, batch_size=128, use_eos=False)
 	"""
 	# first, do preprocessing
 	X = preprocess(X)
-	print X
+	print(X)
 
 	# word dictionary and init
 	d = defaultdict(lambda : 0)
-	for w in model['utable'].keys():
+	for w in list(model['utable'].keys()):
 		d[w] = 1
 	ufeatures = numpy.zeros((len(X), model['uoptions']['dim']), dtype='float32')
 	bfeatures = numpy.zeros((len(X), 2 * model['boptions']['dim']), dtype='float32')
@@ -110,10 +110,10 @@ def encode(model, X, use_norm=True, verbose=True, batch_size=128, use_eos=False)
 		ds[len(s)].append(i)
 
 	# Get features. This encodes by length, in order to avoid wasting computation
-	for k in ds.keys():
+	for k in list(ds.keys()):
 		if verbose:
-			print k
-		numbatches = len(ds[k]) / batch_size + 1
+			print(k)
+		numbatches = len(ds[k]) // batch_size + 1
 		for minibatch in range(numbatches):
 			caps = ds[k][minibatch::numbatches]
 
@@ -181,10 +181,10 @@ def nn(model, text, vectors, query, k=5):
 	scores = numpy.dot(qf, vectors.T).flatten()
 	sorted_args = numpy.argsort(scores)[::-1]
 	sentences = [text[a] for a in sorted_args[:k]]
-	print 'QUERY: ' + query
-	print 'NEAREST: '
+	print('QUERY: ' + query)
+	print('NEAREST: ')
 	for i, s in enumerate(sentences):
-		print s, sorted_args[i]
+		print(s, sorted_args[i])
 
 
 def word_features(table):
@@ -192,7 +192,7 @@ def word_features(table):
 	Extract word features into a normalized matrix
 	"""
 	features = numpy.zeros((len(table), 620), dtype='float32')
-	keys = table.keys()
+	keys = list(table.keys())
 	for i in range(len(table)):
 		f = table[keys[i]]
 		features[i] = f / norm(f)
@@ -203,15 +203,15 @@ def nn_words(table, wordvecs, query, k=10):
 	"""
 	Get the nearest neighbour words
 	"""
-	keys = table.keys()
+	keys = list(table.keys())
 	qf = table[query]
 	scores = numpy.dot(qf, wordvecs.T).flatten()
 	sorted_args = numpy.argsort(scores)[::-1]
 	words = [keys[a] for a in sorted_args[:k]]
-	print 'QUERY: ' + query
-	print 'NEAREST: '
+	print('QUERY: ' + query)
+	print('NEAREST: ')
 	for i, w in enumerate(words):
-		print w
+		print(w)
 
 
 def _p(pp, name):
@@ -226,7 +226,7 @@ def init_tparams(params):
 	initialize Theano shared variables according to the initial parameters
 	"""
 	tparams = OrderedDict()
-	for kk, pp in params.iteritems():
+	for kk, pp in params.items():
 		tparams[kk] = theano.shared(params[kk], name=kk)
 	return tparams
 
@@ -236,7 +236,7 @@ def load_params(path, params):
 	load parameters
 	"""
 	pp = numpy.load(path)
-	for kk, vv in params.iteritems():
+	for kk, vv in params.items():
 		if kk not in pp:
 			warnings.warn('%s is not in the archive'%kk)
 			continue
