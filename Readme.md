@@ -4,9 +4,9 @@ EECS545 F17 Final Project
 ### Prepare word vectors from tags
 * Make the drirectory `corpus` under the project root directory
 * Put `tags_clean.csv` under `corpus`
-* Run `some script` to generate `training_captions.txt`
+* Run `sed -e 's/^[0-9][0-9]*,//g' -e 's/:[0-9][0-9]*//g' -e 's/[[:space:]]/ /g' <tags_clean.csv >training_captions.txt` to generate `training_captions.txt`
 * Run `python skipthought_downloader.py` in `src/vectorEncoder` to download and construct the path of data
-* Run `python generate_thought_vectors.py --caption-file <path-to-captions> --output-file <project_root>/corpus/train_vectors.hdf5` to generate training vectors.
+* Run `python generate_thought_vectors.py --caption-file <project_root>/corpus/training_captions.txt --output-file <project_root>/corpus/train_vectors.hdf5` to generate training vectors.
 
 ### Preprocess images for training
 * Untar `faces.tar.gz` under `corpus`
@@ -19,7 +19,7 @@ EECS545 F17 Final Project
 
 ### Generate images with custom captions using the trained model
 * Create `custom_captions.txt` and write several captions to that file
-* Run `python generate_thought_vectors.py --caption-file <path-to-caption> --output-file <project_root>/corpus/custom_caption_vectors.hdf5` to generate vectors corresponding to captions in `custom_captions.txt`
+* Run `python generate_thought_vectors.py --caption-file <path-to-caption> --output-file <project_root>/corpus/custom_caption_vectors.hdf5` to generate vectors corresponding to the captions in `custom_captions.txt`
 * Run the following command to generate images
 ```
 python generate_image.py \
@@ -31,6 +31,7 @@ python generate_image.py \
 ```
 
 ### Dependencies
-See `requirements.txt`
+Python 3
+See `requirements.txt` for used packages
 
 [Dataset](https://drive.google.com/drive/folders/0BwJmB7alR-AvMHEtczZZN0EtdzQ)
