@@ -1,10 +1,10 @@
 # EECS545 F17 Final Project
 
 ### Prepare word vectors from tags
-* Make drirectory `corpus` under the project root directory
+* Make directory `corpus` under the project root directory
 * Put `tags_clean.csv` under `corpus`
 * Run `sed -e 's/^[0-9][0-9]*,//g' -e 's/:[0-9][0-9]*//g' -e 's/[[:space:]]/ /g' <tags_clean.csv >training_captions.txt` to generate `training_captions.txt`
-* Run `python skipthought_downloader.py` in `src/vectorEncoder` to download and construct the path of data
+* Make directory `Datas` under `src/vectorEncoder` and run `python skipthought_downloader.py` to download the skip-thoughts model
 * Run `python generate_thought_vectors.py --caption-file <project_root>/corpus/training_captions.txt --output-file <project_root>/corpus/train_vectors.hdf5` to generate training vectors.
 
 ### Preprocess images for training
